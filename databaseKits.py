@@ -67,7 +67,7 @@ def delKit(arg):
 def getKit(arg):
     con = sqlite3.connect("../data/kits.sqlite")
     cur = con.cursor()
-    name = databaseChars.getName(arg[0])
+    name = databaseChars.getName(arg)
 
     if name != 0:
         sql = "SELECT msgID, type FROM kits WHERE name = ?"
@@ -78,7 +78,7 @@ def getKit(arg):
         return data
     else:
         raise NameError
-    
+
 def getAllKits():
     con = sqlite3.connect("../data/kits.sqlite")
     cur = con.cursor()

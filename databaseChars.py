@@ -36,10 +36,10 @@ def getName(arg):
 
     for s in data:
         if arg in s[0] or arg in s[1]:
-            return s[0]
+            return s[0]          
     else:
         return 0
-    
+
 def getTranslatedAlias(name):
     con = sqlite3.connect("../data/chars.sqlite")
     cur = con.cursor()
