@@ -37,7 +37,7 @@ def getArgs(raw):
 def start(message):
     text = "<b>Приветствую!</b>\nВы можете ознакомиться с доступными командами через команду /help и зарегистрироваться через команду /reg."
 
-    bot.send_message(message.chat.id, text)
+    bot.send_message(message.chat.id, text, parse_mode = "HTML")
 
 # РЕГИСТРАЦИЯ
 @bot.message_handler(commands = ["reg"])
