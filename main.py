@@ -5,7 +5,7 @@ import databaseChars as dbC
 import databaseKits as dbK
 
 # КОНСТАНТЫ И ОБРАЩЕНИЯ К ДРУГИМ ФАЙЛАМ
-TOKEN = "6721429873:AAE_VKvIN0AXog4HOdeWaSzfIZc3gZsG-a8" #5970822743:AAEcepRfV9Opx4GYnNeCeMUpYFlb2nlBwqc - Door ||| 6721429873:AAE_VKvIN0AXog4HOdeWaSzfIZc3gZsG-a8 - MadamZ
+TOKEN = "6721429873:AAE_VKvIN0AXog4HOdeWaSzfIZc3gZsG-a8"
 PRYDWEN = 'https://www.prydwen.gg/re1999/characters/'
 OWNERS = [1099300504, 6106161997] # здесь ввести ID того, кто будет ответственным за бота. у него будут неснимаемые права админа.
 LIBRARY = "@conundrum_library"
@@ -29,6 +29,17 @@ def getArgs(raw):
         return tuple([a.lower() for a in raw.split(', ')])
     except:
         return 0    
+
+def makePretty(alias):
+    args = dbC.getName(alias)
+    alias = dbC.getAliases(args)[0].split(', ')[0]
+    alias = alias[0].upper() + alias[1:]
+
+    try:
+        alias = alias[:alias.index(' ')+1:] + alias[alias.index(' ')+1].upper() + alias[alias.index(' ')+2:]
+    except:
+        pass
+    return alias
 
 # ----------------- ОБЩИЕ ПОЛЬЗОВАТЕЛЬСКИЕ КОМАНДЫ И СВЯЗАННЫЕ С НИМИ ФУНКЦИИ ------------------------------------------------------------------------------------------
     
@@ -57,14 +68,15 @@ def help(message):
     text = [
     """
 <b>ПОЛЬЗОВАТЕЛЬСКИЕ КОМАНДЫ</b>
-<code>/reg</code> - зарегистрироваться в боте 
-<code>/links</code> [<code>ru</code>, <code>cn</code>, <code>con</code>] - получить ссылку на канал: Фонд, Китайка, Конундрум
+<i>Все аргументы в командах пишутся через запятую с пробелом!</i>
+/reg - зарегистрироваться в боте 
+<code>/link</code> [<code>ru</code>, <code>cn</code>, <code>con</code>] - получить ссылку на канал: Фонд, Китайка, Конундрум
 <code>/prydwen</code> [имя персонажа] - получить ссылку на персонажа на Prydwen
+/buildhelp - получить список персонажей, имеющих карточки в /build
 <code>/build</code> [имя персонажа] - получить карточки билда персонажа
+/kithelp - получить список персонажей, имеющих /kit
 <code>/kit</code> [имя персонажа], [<code>i</code> - инсайт, <code>s</code> - навыки, <code>p</code> - портреты, <code>u</code> - ультимейт, <code>e</code> - эйфория] - получить перевод скиллсета персонажа или отдельные его части
 <code>/guide</code> [имя персонажа] - получить гайд на персонажа
-<code>/buildhelp</code> - получить список персонажей, имеющих карточки в /build
-<code>/kithelp</code> - получить список персонажей, имеющих /kit
     """
     ]
     bot.reply_to(message, text, parse_mode = 'HTML')
@@ -88,10 +100,8 @@ def links(message):
 # ССЫЛКА НА ПЕРСОНАЖА НА PRYDWEN
 @bot.message_handler(commands = ["prydwen"])
 def prydwen(message):
-
     arg = dbC.getName(getArgs(message.text)[0])
     if arg == 0: bot.reply_to(message, "Пожалуйста, введите аргументы: (имя/прозвище персонажа)") 
-
     chars = [l[0] for l in dbC.getNames()] 
     if arg in chars:
         bot.reply_to(message, PRYDWEN + arg)
@@ -147,7 +157,7 @@ def buildhelp(message):
         data = [f'<code>{a}</code>' for a in data]
         text = ", ".join(data)
 
-        bot.reply_to(message, f"<b>Персонажи, доступные для команды /build</b>\n{text}", parse_mode = "HTML")
+        bot.reply_to(message, f"<b>Персонажи, доступные для команды <code>/build</code></b>\n{text}", parse_mode = "HTML")
     except:
         bot.reply_to(message, "Нетипичная ошибка: проверьте правильность ввода или обратитесь к владельцу")
 
@@ -159,13 +169,16 @@ def kit(message):
         data = dbK.getKit(args[0])
 
         if len(args) == 1:
-            for id in data:
-                bot.forward_message(chat_id = message.chat.id, message_thread_id= message.message_thread_id, from_chat_id = f"{LIBRARY}", message_id = int(id[0]))
+            id = data[0]
+            bot.forward_message(chat_id = message.chat.id, message_thread_id= message.message_thread_id, from_chat_id = f"{LIBRARY}", message_id = int(id[0]))
+                
         elif len(args) == 2 and args[1] in ('i', 's', 'p', 'u', 'e'):
             for id in data:
                 if id[1] == args[1]: bot.forward_message(chat_id = message.chat.id, message_thread_id= message.message_thread_id, from_chat_id = f"{LIBRARY}", message_id = int(id[0]))
         else:
             bot.reply_to(message, "Неправильный ввод")
+    except NameError:
+        bot.reply_to(message, "К сожалению, скиллсета этого персонажа нет")
     except:
         bot.reply_to(message, "Нетипичная ошибка: проверьте правильность ввода или обратитесь к владельцу")
 
@@ -176,9 +189,23 @@ def kitHelp(message):
         data = [f'<code>{dbC.getTranslatedAlias(j)}</code>' for j in data]
         data = ', '.join(data)
         
-        bot.reply_to(message, f"<b>Список персонажей, доступных для /kit:</b>\n{data}", parse_mode = "HTML")
+        bot.reply_to(message, f"<b>Список персонажей, доступных для <code>/kit</code>:</b>\n{data}", parse_mode = "HTML")
     except:
         bot.reply_to(message, "Нетипичная ошибка: проверьте правильность ввода или обратитесь к владельцу")
+
+# ----------------- КРУТКИ И РАЗВЛЕКАТЕЛЬНЫЕ ФУНКЦИИ --------------------------------------------------------------------------------------------------------------
+
+@bot.message_handler(commands = ['smooch'])
+def smooch(message):
+    args = getArgs(message.text)[0]
+    smooches = dbC.smooch(args)
+    alias = makePretty(args)
+
+    bot.reply_to(message, f"Вы поцеловали {alias}! Теперь на нём/ней {smooches} поцелуев")
+
+# @bot.message_handler(commands = ['pull'])
+# def pull(message):
+#     args = getArgs(message.text)[0]
 
 # ----------------- АДМИН-ПАНЕЛЬ И СВЯЗАННЫЕ С НЕЙ ФУНКЦИИ --------------------------------------------------------------------------------------------------------------
 
@@ -235,6 +262,7 @@ def adminHelp(message):
 def chars(message):
     if isAdmin(message) == True:
         l = ', '.join([f"<code>{i[0]}</code>" for i in dbC.getNames()])
+        print(l)
         bot.reply_to(message, f'<b>Доступные для взаимодействия персонажи</b>\n{l}', parse_mode = "HTML" ) 
     else:
         bot.reply_to(message, "Недостаточно прав!")

@@ -256,4 +256,19 @@ def getChar(arg):
     con.close()
     return char
 
-# ТЕСТОВОЕ ПОЛЕ
+# БЛОК №6 - РАЗВЛЕКАТЕЛЬНЫЕ ФУНКЦИИ
+
+def smooch(arg):
+    con = sqlite3.connect("../data/chars.sqlite")
+    cur = con.cursor()
+    name = getName(arg)
+
+    cur.execute("SELECT smooches FROM chars WHERE name = ?", (name,))
+    smooches = cur.fetchone()[0]
+
+    sql = "UPDATE chars SET smooches = ? WHERE name = ?"
+
+    cur.execute(sql, (smooches+1, name,))
+    con.commit()
+    con.close()
+    return smooches+1    
