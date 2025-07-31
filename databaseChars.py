@@ -15,7 +15,8 @@ def createTable():
             materials TEXT DEFAULT 0,
             guide TEXT DEFAULT 0,
             resonance1 TEXT DEFAULT 0,
-            resonance2 TEXT DEFAULT 0
+            resonance2 TEXT DEFAULT 0,
+            smooches INTEGER DEFAULT 0
             )"""
     
     cur.execute(sql)
@@ -107,14 +108,13 @@ def addAliases(args):
     data = getAliases(args[0])[0]
     name = getName(args[0])
 
+    data = set(data.split(', '))
+    for i in args[1:]: data.add(i)
+    data = ', '.join(data)
+
     sql = "UPDATE chars SET aliases = ? WHERE name = ?"
     
-    if data != "0":
-        updated = data + ', ' + args[1]
-    else:
-        updated = args[1]
-    
-    cur.execute(sql, (updated, name,))
+    cur.execute(sql, (data, name,))
     con.commit()
     con.close()
 
@@ -263,12 +263,28 @@ def smooch(arg):
     cur = con.cursor()
     name = getName(arg)
 
-    cur.execute("SELECT smooches FROM chars WHERE name = ?", (name,))
-    smooches = cur.fetchone()[0]
+    if name != 0:
+        cur.execute("SELECT smooches FROM chars WHERE name = ?", (name,))
+        smooches = cur.fetchone()[0]
 
-    sql = "UPDATE chars SET smooches = ? WHERE name = ?"
+        sql = "UPDATE chars SET smooches = ? WHERE name = ?"
 
-    cur.execute(sql, (smooches+1, name,))
-    con.commit()
+        cur.execute(sql, (smooches+1, name,))
+        con.commit()
+        con.close()
+        return smooches+1    
+    else:
+        raise NameError
+    
+def getCharsbyStars(arg):
+    # arg - rarity
+    con = sqlite3.connect("../data/chars.sqlite")
+    cur = con.cursor()
+
+    sql = "SELECT name FROM chars WHERE rarity = ?"
+
+    cur.execute(sql, arg)
+    data = cur.fetchall()
+    data = [i[0] for i in data]
     con.close()
-    return smooches+1    
+    return 0 if data == None else data

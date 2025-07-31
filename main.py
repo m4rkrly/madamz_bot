@@ -3,11 +3,14 @@ from telebot.types import *
 import databaseUsers as dbU
 import databaseChars as dbC
 import databaseKits as dbK
+import databasePortrays as dbP
+from random import randint, choice
 
 # КОНСТАНТЫ И ОБРАЩЕНИЯ К ДРУГИМ ФАЙЛАМ
 TOKEN = "6721429873:AAE_VKvIN0AXog4HOdeWaSzfIZc3gZsG-a8"
 PRYDWEN = 'https://www.prydwen.gg/re1999/characters/'
 OWNERS = [1099300504, 6106161997] # здесь ввести ID того, кто будет ответственным за бота. у него будут неснимаемые права админа.
+PODVAL = [-1001914465003, 190466]
 LIBRARY = "@conundrum_library"
 LIBRARYLINK = "https://t.me/conundrum_library/"
 
@@ -28,7 +31,7 @@ def getArgs(raw):
         raw = raw[raw.index(" ") + 1:]
         return tuple([a.lower() for a in raw.split(', ')])
     except:
-        return 0    
+        return "0"
 
 def makePretty(alias):
     args = dbC.getName(alias)
@@ -69,7 +72,10 @@ def help(message):
     """
 <b>ПОЛЬЗОВАТЕЛЬСКИЕ КОМАНДЫ</b>
 <i>Все аргументы в командах пишутся через запятую с пробелом!</i>
-/reg - зарегистрироваться в боте 
+/reg - зарегистрироваться в боте (для /pull)
+<code>/pull</code> [имя 6* персонажа] - покрутить баннер с персонажем (перед этим нужно использовать /reg) <b>(ТОЛЬКО В ТОПИКЕ ГАЧАРОЛЛ)</b>
+/mypulls - узнать свою статистику по круткам 
+<code>/smooch</code> [имя персонажа] - поцеловать персонажа
 <code>/link</code> [<code>ru</code>, <code>cn</code>, <code>con</code>] - получить ссылку на канал: Фонд, Китайка, Конундрум
 <code>/prydwen</code> [имя персонажа] - получить ссылку на персонажа на Prydwen
 /buildhelp - получить список персонажей, имеющих карточки в /build
@@ -197,11 +203,17 @@ def kitHelp(message):
 
 @bot.message_handler(commands = ['smooch'])
 def smooch(message):
-    args = getArgs(message.text)[0]
-    smooches = dbC.smooch(args)
-    alias = makePretty(args)
+    try:
+        args = getArgs(message.text)[0]
+        smooches = dbC.smooch(args)
+        alias = makePretty(args)
 
-    bot.reply_to(message, f"Вы поцеловали {alias}! Теперь на нём/ней {smooches} поцелуев")
+        bot.reply_to(message, f"Вы поцеловали {alias}! Теперь на нём/ней {smooches} поцелуев")
+    except NameError:
+        bot.reply_to(message, "К сожалению, этого персонажа нет")
+    except:
+        bot.reply_to(message, "Нетипичная ошибка: проверьте правильность ввода или обратитесь к владельцу")
+
 
 # @bot.message_handler(commands = ['pull'])
 # def pull(message):
@@ -261,8 +273,7 @@ def adminHelp(message):
 @bot.message_handler(commands = ['chars'])
 def chars(message):
     if isAdmin(message) == True:
-        l = ', '.join([f"<code>{i[0]}</code>" for i in dbC.getNames()])
-        print(l)
+        l = ', '.join([i[0] for i in dbC.getNames()])
         bot.reply_to(message, f'<b>Доступные для взаимодействия персонажи</b>\n{l}', parse_mode = "HTML" ) 
     else:
         bot.reply_to(message, "Недостаточно прав!")
@@ -358,8 +369,7 @@ def delChar(message):
 def addAliases(message):
     if isAdmin(message) == True:
         try:
-            text = message.text[message.text.index(' ')+1:]
-            args = tuple([text[:text.index(',')], (text[text.index(',') + 2:]).lower()]) #возможно стоит переделать
+            args = getArgs(message.text)
             dbC.addAliases(args)
             bot.reply_to(message, f"Прозвища персонажа {args[0]} были успешно изменены.")
             # print(f'{message.from_user.id} ({message.from_user.username}) has changed aliases of character {args[0]}')
@@ -478,6 +488,99 @@ def delkit(message):
                 bot.reply_to(message, "Нетипичная ошибка: проверьте правильность ввода или обратитесь к владельцу")  
     else:
         bot.reply_to(message, "Недостаточно прав!")
+
+# ----------------- ДОПФУНКЦИИ --------------------------------------------------------------------------------------------------------------
+
+@bot.channel_post_handler(func = lambda message: True)
+def forward_post(message):
+    try:
+        bot.forward_message(chat_id = PODVAL[0], message_thread_id = PODVAL[1], from_chat_id = "@stpf_info", message_id = message.id)
+    except:
+        bot.send_message(OWNERS[1], "Что-то не так с пересылкой постов!")
+
+@bot.message_handler(commands = ["mypulls"])
+def mypulls(message):
+    data = dbU.getPulls(message.from_user.id)
+    
+    text = f"<b>Приветствую, {message.from_user.username if message.from_user.username != None else "Пользователь"}!</b>\n<i>Всего:</i> {data[1]}, <i>Откручено:</i> {data[0]}\nW/G/A = {data[4]}/{data[5]}/{data[3]}, <i>Среднее:</i> {data[1]//data[3] if data[3] > 0 else 0}\n<i>Гарант или 50/50:</i> {"Гарант" if data[2] == 1 else "50/50"}"
+
+    bot.reply_to(message, text, parse_mode = "HTML")
+
+@bot.message_handler(commands = ["pull"])
+def pull(message):
+    try:
+        arg = getArgs(message.text)[0]
+        name = dbC.getName(arg)
+        dbP.addPortrait(message.from_user.id, name)
+        count = dbP.getCount(message.from_user.id, name)[0]
+        text = f"<b>Текущий баннер: {makePretty(name)}</b>\n<i>Портретов {makePretty(name)}: {count}</i>"
+        chanceIncr = 0
+
+        for j in range(10):
+            data = list(dbU.getPulls(message.from_user.id)) #current_pulls, all_pulls, guarantee, six_times, six_wins, six_guaranteed
+
+            data[0] = data[0] + 1
+            data[1] = data[1] + 1
+
+            if data[0] >= 60:
+                chanceIncr = 25*(data[0] - 59)
+            
+            n = randint(1, 1000)
+            if 0 <= n <= 15 + chanceIncr or data[0] == 70:
+                stars = "6"
+                chars = dbC.getCharsbyStars(stars)
+            elif 16 + chanceIncr <= n <= 100:
+                stars = "5"
+                chars = dbC.getCharsbyStars(stars)
+            elif 101 + chanceIncr <= n <= 500:
+                stars = "4"
+                chars = dbC.getCharsbyStars(stars)
+            elif 501 + chanceIncr <= n <= 950:
+                stars = "3"
+                chars = dbC.getCharsbyStars(stars)
+            elif 951 <= n <= 1000:
+                stars = "2"
+                chars = dbC.getCharsbyStars(stars)
+
+            if data[2] == 0 and ((0 <= n <= 15 + chanceIncr) or (data[0] == 70)):
+                if randint(1, 2) == 1:
+                    result = name
+                    text += f"\n<b>-- {data[0]} - [{stars}✦] {makePretty(result)} (Победа!)</b>"
+                    data[0] = 0
+                    data[3], data[4] = data[3] + 1, data[4] + 1
+                    dbP.updCount(message.from_user.id, name)
+
+                else:
+                    chars.remove(name)
+                    result = choice(chars) 
+                    text += f"\n<b>-- {data[0]} - [{stars}✦] {makePretty(result)} (Проигрыш)</b>"
+                    data[0], data[2] = 0, 1
+                    data[3] = data[3] + 1
+                    dbP.addPortrait(message.from_user.id, result)
+                    dbP.updCount(message.from_user.id, result)
+
+                chanceIncr = 0
+                data[5] = data[5] + 1
+
+            elif data[2] == 1 and ((0 <= n <= 15 + chanceIncr) or (data[0] == 70)):
+                result = name
+                text += f"\n<b>-- {data[0]} - [{stars}✦] {makePretty(result)} (Гарант)</b>"
+                data[0], data[2] = 0, 0
+                data[3], data[5] = data[3] + 1, data[5] + 1
+                chanceIncr = 0
+                dbP.updCount(message.from_user.id, name)
+            else:
+                result = choice(chars)
+                text += f"\n({data[0]}) - [{stars}✦] {makePretty(result)}"
+
+            data.append(message.from_user.id)
+            dbU.updatePulls(tuple(data))
+
+        bot.reply_to(message, text, parse_mode = 'HTML')
+    except TypeError:
+        bot.reply_to(message, "Пожалуйста, введите имя 6✦-го персонажа, баннер которого вы хотите покрутить\nНапример: /pull Ан-Ан Ли")
+    except:
+        bot.reply_to(message, "Нетипичная ошибка: проверьте правильность ввода или обратитесь к владельцу")  
 
 print("Bot has started")
 bot.polling(non_stop=True)       
