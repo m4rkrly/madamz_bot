@@ -189,14 +189,14 @@ def build(message):
 # ВЫВОД ВСЕХ ДОСТУПНЫХ ПЕРСОНАЖЕЙ ДЛЯ /build
 @bot.message_handler(commands = ['buildhelp'])
 def buildhelp(message):
-    try:
+    # try:
         data = dbC.getAllBuilds()
         data = [f'<code>{dbC.getTranslatedAlias(a[0])}</code>' for a in data]
-        text = ", ".join(data)
+        text = ", ".join(sorted(data))
 
         bot.reply_to(message, f"<b>Персонажи, доступные для команды <code>/build</code></b>\n{text}", parse_mode = "HTML")
-    except:
-        bot.reply_to(message, "Нетипичная ошибка: проверьте правильность ввода или обратитесь к владельцу")
+    # except:
+    #     bot.reply_to(message, "Нетипичная ошибка: проверьте правильность ввода или обратитесь к владельцу")
 
 # ВЫВОД СКИЛЛСЕТОВ ПЕРСОНАЖЕЙ (/kit)
 @bot.message_handler(commands = ['kit'])
@@ -227,7 +227,7 @@ def kitHelp(message):
     try:
         data = set([i[0] for i in dbK.getAllKits()])
         data = [f'<code>{dbC.getTranslatedAlias(j)}</code>' for j in data]
-        data = ', '.join(data)
+        data = ', '.join(sorted(data))
         
         bot.reply_to(message, f"<b>Список персонажей, доступных для <code>/kit</code>:</b>\n{data}", parse_mode = "HTML")
     except:

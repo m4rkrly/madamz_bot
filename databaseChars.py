@@ -15,7 +15,7 @@ def createTable():
             rarity TEXT,
             afflatus TEXT,
             dmgType TEXT,
-            aliases TEXT DEFAULT NULL,
+            aliases TEXT DEFAULT 0,
             build TEXT DEFAULT 0,
             materials TEXT DEFAULT 0,
             guide TEXT DEFAULT 0,
@@ -138,7 +138,7 @@ def delAliases(arg):
     cur = con.cursor()
     name = getName(arg)
 
-    sql = "UPDATE chars SET aliases = NULL WHERE name = ?"
+    sql = "UPDATE chars SET aliases = 0 WHERE name = ?"
 
     cur.execute(sql, (name,))
     con.commit()
