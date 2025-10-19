@@ -1,5 +1,10 @@
 import sqlite3
 
+class CharNameError(BaseException): pass
+class RepeationError(BaseException): pass
+class AmountError(BaseException): pass
+class ArgumentTypeError(BaseException): pass
+
 def createTable():
     con = sqlite3.connect("../data/chars.sqlite")
     cur = con.cursor()
@@ -10,12 +15,13 @@ def createTable():
             rarity TEXT,
             afflatus TEXT,
             dmgType TEXT,
-            aliases TEXT DEFAULT 0,
+            aliases TEXT DEFAULT NULL,
             build TEXT DEFAULT 0,
             materials TEXT DEFAULT 0,
             guide TEXT DEFAULT 0,
             resonance1 TEXT DEFAULT 0,
             resonance2 TEXT DEFAULT 0,
+            resonance3 TEXT DEFAULT 0,
             smooches INTEGER DEFAULT 0
             )"""
     
@@ -36,7 +42,7 @@ def getName(arg):
     data = cur.fetchall()
 
     for s in data:
-        if arg in s[0] or arg in s[1]:
+        if str(arg) == s[0] or (s[1] != None and any(str(arg) == i for i in s[1].split(', '))):
             return s[0]          
     else:
         return 0
@@ -100,16 +106,25 @@ def getAliases(name):
     cur.execute(sql, (name,))
     als = cur.fetchone()
     con.close()
+    if als == None: raise CharNameError
     return als
 
 def addAliases(args):
     con = sqlite3.connect("../data/chars.sqlite")
     cur = con.cursor()
-    data = getAliases(args[0])[0]
     name = getName(args[0])
 
-    data = set(data.split(', '))
-    for i in args[1:]: data.add(i)
+    data = getAliases(args[0])[0]
+
+    if data != None and data != "0":
+        data = data.split(', ')
+    else:
+        data = list() 
+    
+    for i in args[1:]:
+        if i not in data:
+            data.append(i)
+    
     data = ', '.join(data)
 
     sql = "UPDATE chars SET aliases = ? WHERE name = ?"
@@ -123,7 +138,7 @@ def delAliases(arg):
     cur = con.cursor()
     name = getName(arg)
 
-    sql = "UPDATE chars SET aliases = 0 WHERE name = ?"
+    sql = "UPDATE chars SET aliases = NULL WHERE name = ?"
 
     cur.execute(sql, (name,))
     con.commit()
@@ -142,9 +157,9 @@ def addCard(arg, type, file_id):
         elif type in ('materials', 'm', 'материалы', 'м'):
             sql = "UPDATE chars SET materials = ? WHERE name = ?"
         else:
-            raise Exception
+            raise ArgumentTypeError
     else:
-        raise NameError
+        raise CharNameError
     
     cur.execute(sql, (file_id, name))
     con.commit()
@@ -156,16 +171,16 @@ def addReson(args):
     name = getName(args[0])
 
     if name != 0:
-        if args[1] in ["1", "2"]:
+        if args[1] in ["1", "2", "3"]:
             sql = f"UPDATE chars SET resonance{args[1]} = ? WHERE name = ?"
 
             cur.execute(sql, (args[2], name,))
             con.commit()
             con.close()
         else:
-            raise Exception
+            raise AmountError
     else:
-        raise NameError 
+        raise CharNameError 
 
 def addGuide(args):
     con = sqlite3.connect("../data/chars.sqlite")
@@ -179,7 +194,7 @@ def addGuide(args):
         con.commit()
         con.close()
     else:
-        raise NameError 
+        raise CharNameError 
 
 # БЛОК №4 - ПОЛУЧЕНИЕ КАРТОЧЕК, РЕЗОНАНСОВ И ГАЙДА
 
@@ -189,18 +204,18 @@ def getPics(arg):
     name = getName(arg)
     
     if name != 0:
-        sql = "SELECT build, materials, resonance1, resonance2 FROM chars WHERE name = ?"
+        sql = "SELECT build, materials, resonance1, resonance2, resonance3 FROM chars WHERE name = ?"
 
         cur.execute(sql, (name,))
         pics = cur.fetchone()
         con.close()
         
         if pics[0] == "0":
-            raise NameError
+            raise CharNameError
         else:
             return pics
     else:
-        raise NameError
+        raise CharNameError
 
 def getGuide(arg):
     con = sqlite3.connect("../data/chars.sqlite")
@@ -215,7 +230,7 @@ def getGuide(arg):
         con.close()
         return guide
     else:
-        raise NameError
+        raise CharNameError
     
 # БЛОК №5 - ФУНКЦИИ НАВИГАЦИИ
 
@@ -231,11 +246,22 @@ def getNames():
     con.close()
     return data
 
-def getBuildableAliases():
+def getAllBuilds():
     con = sqlite3.connect("../data/chars.sqlite")
     cur = con.cursor()
 
-    sql = "SELECT aliases FROM chars WHERE build <> 0"
+    sql = "SELECT name FROM chars WHERE build <> 0"
+
+    cur.execute(sql)
+    data = cur.fetchall()
+    con.close()
+    return data
+
+def getGuidedAliases():
+    con = sqlite3.connect("../data/chars.sqlite")
+    cur = con.cursor()
+
+    sql = "SELECT aliases FROM chars WHERE guide <> 0"
 
     cur.execute(sql)
     data = cur.fetchall()
@@ -249,7 +275,7 @@ def getChar(arg):
     cur = con.cursor()
     name = getName(arg)
 
-    sql = "SELECT name, rarity, afflatus, dmgType, aliases, build, materials, guide, resonance1, resonance2 FROM chars WHERE name = ? "
+    sql = "SELECT name, rarity, afflatus, dmgType, aliases, build, materials, guide, resonance1, resonance2, resonance3 FROM chars WHERE name = ? "
 
     cur.execute(sql, (name,))
     char = cur.fetchone()
@@ -274,7 +300,7 @@ def smooch(arg):
         con.close()
         return smooches+1    
     else:
-        raise NameError
+        raise CharNameError
     
 def getCharsbyStars(arg):
     # arg - rarity

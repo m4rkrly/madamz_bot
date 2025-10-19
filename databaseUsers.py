@@ -1,6 +1,7 @@
 import sqlite3
 
-# СОЗДАНИЕ ТАБЛИЦЫ С СТОЛБЦАМИ ID, username, isAdmin
+class RegistrationError(BaseException): pass
+
 def createUsers():
     con = sqlite3.connect("../data/users.sqlite")
     cur = con.cursor()
@@ -77,7 +78,10 @@ def getPulls(id):
     
     data = cur.fetchone()
     con.close()
-    return data
+    if data == None:
+        raise RegistrationError
+    else:
+        return data
 
 def updatePulls(args):
     # args - tuple(current_pulls, all_pulls, gurantee, six_times, six_wins, six_guranteed)
@@ -89,4 +93,3 @@ def updatePulls(args):
     cur.execute(sql, args)
     con.commit()
     con.close()
-

@@ -1,5 +1,5 @@
 import sqlite3
-import databaseChars
+import databaseChars as dbC
 
 def createTable():
     con = sqlite3.connect("../data/kits.sqlite")
@@ -19,15 +19,47 @@ def createTable():
 
 createTable()
 
-def addKit(args):
-    #name, mainpostID, additSkills, additEuph"
+# ДЛЯ РУЧНОГО ДОБАВЛЕНИЯ
+def manualAddKit(args):
+    # name, kit, msgId, type
+    name = dbC.getName(args[0])
     con = sqlite3.connect("../data/kits.sqlite")
     cur = con.cursor()
-    name = databaseChars.getName(args[0])
+
+    if name != 0:
+        sql = "INSERT OR IGNORE INTO kits(name, kit, msgId, type) VALUES(?, ?, ?, ?)"
+
+        cur.execute(sql, args)
+
+        con.commit()
+        con.close()
+        return cur.lastrowid
+    else:
+        raise dbC.CharNameError
+
+def manualDelKit(id):
+    # id
+    con = sqlite3.connect("../data/kits.sqlite")
+    cur = con.cursor()
+
+    sql = "DELETE FROM kits WHERE id = ?"
+
+    cur.execute(sql, id)
+    con.commit()
+    con.close()
+
+def addKit(args):
+    #name, mainpostID, additSkills, additEuph"
+    name = dbC.getName(args[0]) # [0] НЕ УБИРАТЬ
+    rep = getKit((name)) # [0] НЕ УБИРАТЬ
+    if rep != 0: raise dbC.RepeationError
+
+    con = sqlite3.connect("../data/kits.sqlite")
+    cur = con.cursor()
     skills = 2 + args[2]
     euph = 1 + args[3]
 
-    sql = "INSERT OR IGNORE INTO kits(name, kit, msgID, type) VALUES(?, ?, ?, ?)"
+    sql = "INSERT OR IGNORE INTO kits(name, kit, msgId, type) VALUES(?, ?, ?, ?)"
 
     if name != 0:    
         # Основной пост
@@ -45,7 +77,7 @@ def addKit(args):
         for n in range(1, euph+1):
             cur.execute(sql, (name, 'euphoria', (args[1]+skills+3+n), "e"))
     else:
-        raise NameError
+        raise dbC.CharNameError
 
     con.commit()
     con.close()
@@ -53,7 +85,7 @@ def addKit(args):
 def delKit(arg):
     con = sqlite3.connect("../data/kits.sqlite")
     cur = con.cursor()
-    name = databaseChars.getName(arg[0])
+    name = dbC.getName(arg)
 
     if name != 0:
         sql = "DELETE FROM kits WHERE name = ?"
@@ -62,12 +94,12 @@ def delKit(arg):
         con.commit()
         con.close()
     else:
-        raise NameError
+        raise dbC.CharNameError
 
 def getKit(arg):
     con = sqlite3.connect("../data/kits.sqlite")
     cur = con.cursor()
-    name = databaseChars.getName(arg)
+    name = dbC.getName(arg)
 
     if name != 0:
         sql = "SELECT msgID, type FROM kits WHERE name = ?"
@@ -75,9 +107,9 @@ def getKit(arg):
         cur.execute(sql, (name,))
         data = cur.fetchall()
         con.close()
-        return data
+        return data if data != [] else 0
     else:
-        raise NameError
+        raise dbC.CharNameError
 
 def getAllKits():
     con = sqlite3.connect("../data/kits.sqlite")
