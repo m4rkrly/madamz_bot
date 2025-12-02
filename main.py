@@ -7,7 +7,7 @@ import databasePortrays as dbP
 from random import randint, choice
 
 # КОНСТАНТЫ И ОБРАЩЕНИЯ К ДРУГИМ ФАЙЛАМ
-TOKEN = "6721429873:AAE_VKvIN0AXog4HOdeWaSzfIZc3gZsG-a8"
+TOKEN = ""
 PRYDWEN = 'https://www.prydwen.gg/re1999/characters/'
 OWNERS = [1099300504, 6106161997] # здесь ввести ID того, кто будет ответственным за бота. у него будут неснимаемые права админа.
 PODVAL = [-1001914465003, 190466]
